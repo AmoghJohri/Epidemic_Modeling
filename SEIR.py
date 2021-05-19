@@ -11,7 +11,7 @@ class SEIR:
         R = R + dt * (gamma * I - mu * R)
         D = - (S + E + I + R)
 
-    Parameters (no isolation and epidemic condition):
+    Parameters:
         N0      = 10000000 (10 million)
         alpha   = 0.006/day
         beta    = 0.75/day
@@ -22,13 +22,15 @@ class SEIR:
         I0      = 1
         R0      = 0
         S0      = N0 - (S0 + I0 + R0)
+
     """
-    def __init__(self, wedge, mu, alpha, beta, eta, gamma, N0, S0, E0, I0, R0):
+    def __init__(self, wedge, mu, alpha, beta, eta, gamma, theta, N0, S0, E0, I0, R0):
         self.wedge = wedge 
         self.mu = mu 
         self.alpha = alpha 
         self.beta = beta 
         self.eta = eta 
+        self.theta = theta
         self.gamma = gamma
         self.N0 = N0 
         self.S0 = S0 
@@ -41,22 +43,35 @@ class SEIR:
         self.I = I0 
         self.R = R0
         self.T = 0
+        self.D = 0
+
+    def reset(self):
+        self.N = self.N0 
+        self.S = self.S0 
+        self.E = self.E0 
+        self.I = self.I0 
+        self.R = self.R0
+        self.T = 0
+        self.D = 0
         
     def getReproductionRate(self):
-        return (self.beta * self.eta) / ((self.eta + self.mu) * (self.gamma + self.alpha + self.mu))
+        return (self.beta * self.eta) / ((self.eta + self.mu + self.theta) * (self.gamma + self.alpha + self.mu))
 
     def simulate(self, dt=0.01):
-        self.S = self.S + dt * (self.wedge - self.mu * self.S - self.beta * self.S * self.I/self.N)
-        self.E = self.E + dt * (self.beta * self.S * self.I/self.N - (self.mu + self.eta) * self.E)
+        self.S = self.S + dt * (self.wedge - (self.theta + self.mu) * self.S - self.beta * self.S * self.I/self.N)
+        self.E = self.E + dt * (self.beta * self.S * self.I/self.N - (self.mu + self.eta + self.theta) * self.E)
         self.I = self.I + dt * (self.eta * self.E - (self.gamma + self.mu + self.alpha) * self.I)
-        self.R = self.R + dt * (self.gamma * self.I - self.mu * self.R)
-        self.D = - (self.S + self.E + self.I + self.R)
+        self.R = self.R + dt * (self.gamma * self.I + self.theta * (self.S + self.E) - self.mu * self.R)
+        self.D = - (dt * (self.wedge - (self.theta + self.mu) * self.S - self.beta * self.S * self.I/self.N) + \
+                    dt * (self.beta * self.S * self.I/self.N - (self.mu + self.eta + self.theta) * self.E) + \
+                    dt * (self.eta * self.E - (self.gamma + self.mu + self.alpha) * self.I) + \
+                     dt * (self.gamma * self.I + self.theta * (self.S + self.E) - self.mu * self.R))
         self.T = self.T + dt
 
 if __name__ == "__main__":
     N0 = 10000000
     alpha = 0.006
-    beta = 0.75
+    beta = .375
     gamma = 0.125
     eta = 0.33
     I0 = 1
@@ -66,19 +81,17 @@ if __name__ == "__main__":
     # ignoring births and deaths
     wedge = 0
     mu = 0
+    theta = 0.0001
     dt = 0.01
-    days = 80
-    model = SEIR(wedge, mu, alpha, beta, eta, gamma, N0, S0, E0, I0, R0)
+    days = 200
+    model = SEIR(wedge, mu, alpha, beta, eta, gamma, theta, N0, S0, E0, I0, R0)
     iterator = 0
-    S = []
-    E = []
-    I = []
-    R = []
     T = []
-    bar             = progressbar.ProgressBar(maxval=int(days/dt) + 1, \
-    widgets         = [progressbar.Bar('=', '[', ']'), ' ', progressbar.Percentage()])
-    print("Beginning Simulation...")
-    bar.start()
+    S = []
+    I = []
+    E = []
+    R = []
+    D = []
     while iterator*dt < days:
         if iterator*dt - int(iterator*dt) < dt:
             T.append(iterator*dt)
@@ -86,10 +99,9 @@ if __name__ == "__main__":
             I.append(model.I)
             E.append(model.E)
             R.append(model.R)
+            D.append(model.D)
         model.simulate(dt)
         iterator = iterator + 1
-        bar.update(iterator+1)
-    bar.finish()
     plt.plot(T, S)
     plt.plot(T, E)
     plt.plot(T, I)
