@@ -4,7 +4,7 @@ import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt 
 
-from custom_model import SEIR
+from SEIR import SEIR
 
 class Value:
     def __init__(self, alpha, beta, eta, gamma, error):
@@ -45,21 +45,24 @@ def getData(date1, date2):
     data['infected'] = data['total'] - data['discharged'] - data['deaths']
     return data 
 
-def getSEIRModel(I0, R0, D0, eta=1/5.2, gamma=1/2.9, alpha=0.006, beta=.75):
+def getSEIRModel(I0, R0, D0, eta=1/5.2, gamma=1/2.9, alpha=0.006, beta=.75, wedge = 0, mu = 0, theta = 0.01):
     N0 = 1380000000
     E0 = 1000
     I0 = I0/10
     R0 = R0 
-    D0 = D0 
+    D0 = D0
     S0 = N0 - (E0 + I0 + R0 + D0)
     eta = eta
     gamma = gamma
     alpha = alpha
     beta = beta
-    return SEIR(alpha, beta, eta, gamma, N0, S0, E0, I0, R0)
+    wedge = wedge
+    mu = mu
+    theta = theta
+    return SEIR(wedge, mu, alpha, beta, eta, gamma, theta, N0, S0, E0, I0, R0)
 
 def getError(I1, I2):
-    return np.sum(np.abs((np.square(np.asarray(I1)) - np.square(np.asarray(I2)))))
+    return np.sum(np.sqrt(np.abs((np.square(np.asarray(I1)) - np.square(np.asarray(I2))))))
 
 def parameterSpaceExploration(I_real, dt=.01, days=52, gran=5):
     all_values = []
@@ -68,10 +71,10 @@ def parameterSpaceExploration(I_real, dt=.01, days=52, gran=5):
     beta = [0.36, 0.40]
     eta = [.043, .048]
     gamma = [.055, .075]
-    alpha_explore = np.linspace(alpha[0], alpha[1], num=gran)
-    beta_explore = np.linspace(beta[0], beta[1], num=gran)
-    eta_explore = np.linspace(eta[0], eta[1], num=gran)
-    gamma_explore = np.linspace(gamma[0], gamma[1], num=gran)
+    alpha_explore   = np.linspace(alpha[0], alpha[1], num=gran)
+    beta_explore    = np.linspace(beta[0], beta[1], num=gran)
+    eta_explore     = np.linspace(eta[0], eta[1], num=gran)
+    gamma_explore   = np.linspace(gamma[0], gamma[1], num=gran)
     bar             = progressbar.ProgressBar(maxval=(int(days/dt) + 1)*gran*gran*gran*gran, \
     widgets         = [progressbar.Bar('=', '[', ']'), ' ', progressbar.Percentage()])
     counter1 = 0
@@ -127,10 +130,13 @@ def simAndPlot(I0, R0, D0, alpha, beta, eta, gamma, I_real, dt=0.01, days=52):
     plt.plot([d for d in range(len(I_total))], I_total)
     plt.xlabel("Time (Days)")
     plt.ylabel("Population")
-    plt.title("Model Analysis")
+    plt.title("Infections")
     plt.legend(['Real Data', 'Simulation Data'])
     plt.grid()
     plt.show()
+
+def getReproductionRate(beta, eta, gamma, alpha):
+        return (beta * eta) / ((eta + 0.01) * (gamma + alpha))
 
 if __name__ == "__main__":
     date1 = '2021-03-01'
@@ -149,8 +155,9 @@ if __name__ == "__main__":
     # all_values = parameterSpaceExploration(I_real)
     # best_value = all_values[0]
     # best_value.print()
-    eta = .038
-    gamma = .075
-    beta = .45
-    alpha = .0335
+    eta = .1
+    gamma = .15
+    beta = .435
+    alpha = .06
+    print(getReproductionRate(beta, eta, gamma, alpha))
     simAndPlot(I0, R0, D0, alpha, beta, eta, gamma, I_real)
