@@ -3,13 +3,13 @@ import matplotlib.pyplot as plt
 
 class SIR:
     def __init__(self, a, b, N, initial_infections = 1):
-        self.a = a
-        self.b = b 
-        self.N = N 
+        self.a                  = a
+        self.b                  = b 
+        self.N                  = N 
         self.initial_infections = initial_infections
-        self.S = np.asarray([N-self.initial_infections])
-        self.I = np.asarray([self.initial_infections])
-        self.R = np.asarray([0])
+        self.S                  = np.asarray([N-self.initial_infections])
+        self.I                  = np.asarray([self.initial_infections])
+        self.R                  = np.asarray([0])
 
     def simulate(self, x, h=0.1, fetch=5):
         def f1(x, param):
@@ -31,14 +31,14 @@ class SIR:
     @staticmethod
     def rungeKutta4(x0, y0, f, x, fetch, h=0.01):
         iterations = (int)((x - x0)/h)
-        K1 = np.asarray([0. for i in range(len(y0))])
-        K2 = np.asarray([0. for i in range(len(y0))])
-        K3 = np.asarray([0. for i in range(len(y0))])
-        K4 = np.asarray([0. for i in range(len(y0))])
-        y = np.asarray(y0)
-        x = x0
-        out = []
-        counter = 0
+        K1         = np.asarray([0. for i in range(len(y0))])
+        K2         = np.asarray([0. for i in range(len(y0))])
+        K3         = np.asarray([0. for i in range(len(y0))])
+        K4         = np.asarray([0. for i in range(len(y0))])
+        y          = np.asarray(y0)
+        x          = x0
+        out        = []
+        counter    = 0
         for each in range(iterations):
             y = y.reshape(-1)
             for i in range(len(y)):
@@ -58,17 +58,22 @@ class SIR:
         return np.asarray(out)
 
 if __name__ == "__main__":
-    model1 = SIR(0.01, 0.1, 100)
-    out = model1.simulate(30)
-    S = out[:,0]
-    I = out[:, 1]
-    R = out[:, 2]
+    a       = 0.01
+    b       = 0.1
+    N       = 100
+    days    = 300
+    model1  = SIR(a, b, N)
+    out     = model1.simulate(days)
+    S       = out[:, 0]
+    I       = out[:, 1]
+    # R       = out[:, 2]
+    R = np.asarray([N for i in range(len(S))]) - (S + I)
     plt.plot(S)
     plt.plot(I)
     plt.plot(R)
-    plt.legend(["S", "I", "R"])
+    plt.legend(["Susceptible", "Infected", "Recovered"])
     plt.xlabel("Time")
     plt.ylabel("Population")
-    plt.title("SIR Model Dyanmics")
+    plt.title("SIR Model Dyanmics\na: " + str(a) + ", b: " + str(b))
     plt.grid()
     plt.show()
